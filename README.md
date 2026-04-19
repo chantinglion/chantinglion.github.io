@@ -9,4 +9,4 @@ No downloads, no setup, no history — just open and start chanting.
 
 **This is a private project and not official Buddhist guidance. It is non-commercial.**
 
-*Privacy Notice: chantinglion.github.io uses GoatCounter, a privacy-friendly analytics service, to measure visitor statistics. GoatCounter does not use cookies and does not track users across websites. IP addresses are anonymized and no personally identifiable information is stored. The statistics are collected to understand how the website is used. For more information, please visit: https://www.goatcounter.com/*<img width="925" height="426" alt="grafik" src="https://github.com/user-attachments/assets/a6b6e361-4e54-4142-bec7-bb14123d597f" />
+*Privacy Notice: chantinglion.github.io uses GoatCounter, a privacy-friendly analytics service, to measure visitor statistics. GoatCounter does not use cookies and does not track users across websites. IP addresses are anonymized and no personally identifiable information is stored. The statistics are collected to understand how the website is used. For more information, please visit: https://www.goatcounter.com/*.
