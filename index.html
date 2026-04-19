@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nam-Myoho-Renge-Kyo Chanting Tool</title>
+  <meta name="description" content="Tired of chanting Nam-Myoho-Renge-Kyo alone? This tool works like a metronome, helping you stay focused and maintain a steady rhythm. Even when muted, visual flashing signals keep you in time. It’s ideal for virtual group chanting sessions (e.g., on Zoom) of Soka Gakkai members, allowing participants to remain synchronized.">
+  <meta name="robots" content="index, follow">
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body, html {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background-color: black;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      overflow-y: auto; overflow-x: hidden;
+      user-select: none; -webkit-user-select: none;
+    }
+    #chant-container {
+      width: 100%; display: flex; justify-content: center; align-items: center;
+      flex-wrap: wrap; font-family: 'Arial', sans-serif; font-weight: bold;
+      font-size: clamp(2.5rem, 8vw, 8rem); text-align: center; 
+      padding: 0 15px; box-sizing: border-box;
+    }
+    .syllable { color: #ffcc00; padding: 5px 8px; display: inline-block; transition: background-color 0.05s; }
+    .syllable.active { background-color: #4a8fe7; border-radius: 8px; } 
+    body.flash { background-color: #ffffff !important; }
+    body.flash .syllable { color: black !important; }
+    
+    #stopwatch { font-family: 'Arial', sans-serif; font-size: 1.4rem; color: #aaaaaa; margin-top: 15px; letter-spacing: 2px; }
+    #daimoku-display { font-family: 'Arial', sans-serif; font-size: 1.2rem; color: #888888; margin-top: 8px; }
+    
+    #controls {
+      margin-top: 20px; margin-bottom: 20px;
+      display: flex; gap: 8px;
+      align-items: center;
+      background-color: rgba(255, 255, 255, 0.1); padding: 10px 12px; border-radius: 12px;
+      justify-content: center; flex-wrap: wrap; max-width: 95vw;
+    }
+    .control-group { display: flex; gap: 5px; align-items: center; } 
+    
+    button { 
+      color: white; font-family: sans-serif; 
+      font-size: 1rem;
+      min-width: 34px;
+      min-height: 34px;
+      border: 1px solid #555; border-radius: 6px; background-color: rgba(255, 255, 255, 0.15); 
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      user-select: none; -webkit-user-select: none; transition: 0.2s;
+      padding: 0;
+    }
+    
+    button:disabled { opacity: 0.3; cursor: not-allowed; }
+    button.toggled { opacity: 0.3; }
+    
+    input[type="number"] { 
+      color: white; 
+      background: rgba(255, 255, 255, 0.1); 
+      border: 1px solid #555; 
+      width: 44px; 
+      height: 30px; 
+      text-align: center; 
+      font-size: 1rem; 
+      border-radius: 4px;
+      user-select: auto; 
+      -webkit-user-select: auto;
+      
+      /* Force vertical centering */
+      padding: 0; 
+      box-sizing: border-box; 
+      line-height: 28px; 
+      
+      /* Hide arrows in Firefox */
+      -moz-appearance: textfield; 
+    }
+
+    /* Hide arrows in Webkit (Chrome, Safari, etc.) */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    #volumeSlider { width: 80px; accent-color: #4a8fe7; }
+    #muteAllBtn { cursor: pointer; user-select: none; }
+
+    /* Privacy Notice Link Styling */
+    #privacy-link {
+      position: fixed;
+      bottom: 10px;
+      right: 15px;
+      color: #888888;
+      font-family: 'Arial', sans-serif;
+      font-size: 0.8rem;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    #privacy-link:hover {
+      color: #ffffff;
+    }
+  </style>
+</head>
+<script data-goatcounter="https://chantinglion.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+<body>
+
+  <div id="chant-container">
+    <span class="syllable" id="s0">Nam</span>
+    <span class="syllable" id="s1">Myo</span>
+    <span class="syllable" id="s2">ho</span>
+    <span class="syllable" id="s3">Ren</span>
+    <span class="syllable" id="s4">ge</span>
+    <span class="syllable" id="s5">Kyo</span>
+  </div>
+
+  <div id="stopwatch">00:00:00</div>
+  <div id="daimoku-display">Daimoku: 0</div>
+
+  <div id="controls">
+    <div class="control-group">
+      <button id="playBtn" title="Play" aria-label="Play">▶</button>
+      <button id="pauseBtn" title="Pause" aria-label="Pause" disabled>⏸</button>
+      <button id="stopBtn" title="Stop" aria-label="Stop">⏹</button>
+    </div>
+    
+    <div class="control-group">
+      <button id="muteSyllablesBtn" title="Mute syllables" aria-label="Mute syllables">
+        <svg width="16" height="16" fill="#ffcc00" viewBox="0 0 16 16">
+          <path d="M9 13c0 1.105-1.12 2-2.5 2S4 14.105 4 13s1.12-2 2.5-2 2.5.895 2.5 2z"/>
+          <path fill-rule="evenodd" d="M9 3v10H8V3h1z"/>
+          <path d="M8 2.82a1 1 0 0 1 .804-.98l3-.6A1 1 0 0 1 13 2.22V4L8 5V2.82z"/>
+        </svg></button>
+      <button id="muteBellBtn" title="Mute bell" aria-label="Mute bell">🔔</button>
+      <button id="toggleAnimBtn" title="Toggle animation" aria-label="Toggle animation">💡</button>
+    </div>
+
+    <div class="control-group">
+      <button id="bpmMinus" aria-label="Decrease bpm" style= "font-size: 18px;">–</button>
+      <input type="number" id="bpmInput" aria-label="bpm Input" value="54" min="1" max="80">
+      <button id="bpmPlus" aria-label="Increase bpm" style= "font-size: 19px;">+</button>
+    </div>
+    <div class="control-group">
+      <span id="muteAllBtn" role="button" aria-label="Mute all" style="color:#888; font-size: 1.2rem;" title="Mute all">🔊</span>
+      <input type="range" id="volumeSlider" aria-label="Volume" min="0" max="100" value="100">
+    </div>
+    <div class="control-group">
+      <button id="fullscreenBtn" title="Toggle fullscreen" aria-label="Toggle fullscreen">⇱</button>
+    </div>
+  </div>
+
+  <a id="privacy-link" href="https://github.com/chantinglion/chantinglion.github.io/blob/main/README.md" target="_blank" rel="noopener noreferrer">Privacy Notice</a>
+
+  <script>
+    const FLASH_DELAY_MS = 20; 
+
+    const syllables = document.querySelectorAll('.syllable');
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const bpmInput = document.getElementById('bpmInput');
+    const bpmMinusBtn = document.getElementById('bpmMinus');
+    const bpmPlusBtn = document.getElementById('bpmPlus');
+    const stopwatchDisplay = document.getElementById('stopwatch');
+    const daimokuDisplay = document.getElementById('daimoku-display');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const muteSyllablesBtn = document.getElementById('muteSyllablesBtn');
+    const muteBellBtn = document.getElementById('muteBellBtn');
+    const toggleAnimBtn = document.getElementById('toggleAnimBtn');
+    const muteAllBtn = document.getElementById('muteAllBtn');
+    const body = document.body;
+
+    let isSyllablesMuted = false;
+    let isBellMuted = false;
+    let isAnimDisabled = false;
+    let isGlobalMuted = false;
+
+    let isPlaying = false, isPaused = false, audioCtx = null;
+    let startTime = 0, elapsedTime = 0, stopwatchInterval = null;
+    let wakeLock = null;
+
+    let currentIndex = 0;
+    let currentDaimoku = 0;
+    let uiDaimokuCount = 0;
+    let nextNoteTime = 0.0;
+    let schedulerTimer = null;
+    let uiAnimFrame = null;
+    let uiQueue = [];
+
+    fullscreenBtn.onclick = () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const docElm = document.documentElement;
+        if (docElm.requestFullscreen) docElm.requestFullscreen();
+        else if (docElm.webkitRequestFullscreen) docElm.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    };
+    
+    const updateFullscreenIcon = () => {
+      fullscreenBtn.textContent = (document.fullscreenElement || document.webkitFullscreenElement) ? '⇲' : '⇱';
+    };    
+    ['fullscreenchange', 'webkitfullscreenchange'].forEach(evt => 
+      document.addEventListener(evt, updateFullscreenIcon)
+    );
+
+    // --- WAKE LOCK LOGIC ---
+    async function requestWakeLock() {
+      if (document.hidden) return;
+      try { 
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen'); 
+        }
+      } catch (err) {
+        console.error('Wake Lock could not be requested:', err);
+      }
+    }
+    
+    function releaseWakeLock() {
+      if (wakeLock !== null) {
+        wakeLock.release().then(() => wakeLock = null);
+      }
+    }
+
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible' && isPlaying) {
+        await requestWakeLock();
+      }
+    });
+    // ------------------------------------
+
+    function initAudio() { 
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback' });
+    }
+
+    const syllableFreqs = [220.00, 392.00, 261.63, 293.66, 261.63, 246.94];
+
+    function playSyllableTone(index, durationMs, exactStartTime) {
+      if (!audioCtx) return;
+      
+      const vol = isGlobalMuted ? 0 : volumeSlider.value / 100;
+      if (vol === 0) return;
+
+      const freq = syllableFreqs[index];
+      const duration = (durationMs / 1000) * 0.95; 
+      
+      const now = exactStartTime;
+      const fadeOutTime = Math.max(now + duration - 0.01, now); 
+      
+      const attack = 0.02; 
+
+      if (!isSyllablesMuted) {
+        const osc1 = audioCtx.createOscillator(); osc1.type = 'sine'; osc1.frequency.value = freq;
+        const osc2 = audioCtx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = freq * 2;
+        const osc3 = audioCtx.createOscillator(); osc3.type = 'sine'; osc3.frequency.value = freq * 0.667;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(vol * 0.25, now + attack);
+        gain.gain.exponentialRampToValueAtTime(0.001, fadeOutTime);
+        gain.gain.linearRampToValueAtTime(0, now + duration);
+
+        const gain2 = audioCtx.createGain();
+        gain2.gain.setValueAtTime(0, now);
+        gain2.gain.linearRampToValueAtTime(vol * 0.05, now + attack);
+        gain2.gain.exponentialRampToValueAtTime(0.001, fadeOutTime);
+        gain2.gain.linearRampToValueAtTime(0, now + duration);
+
+        const gain3 = audioCtx.createGain();
+        gain3.gain.setValueAtTime(0, now);
+        gain3.gain.linearRampToValueAtTime(vol * 0.08, now + attack);
+        gain3.gain.exponentialRampToValueAtTime(0.001, fadeOutTime);
+        gain3.gain.linearRampToValueAtTime(0, now + duration);
+
+        osc1.connect(gain).connect(audioCtx.destination);
+        osc2.connect(gain2).connect(audioCtx.destination);
+        osc3.connect(gain3).connect(audioCtx.destination);
+
+        osc1.start(now); osc2.start(now); osc3.start(now);
+        osc1.stop(now + duration); osc2.stop(now + duration); osc3.stop(now + duration);
+      }
+
+      if (index === 1 && !isBellMuted) {
+        const bell = audioCtx.createOscillator(); bell.type = 'triangle'; bell.frequency.value = 196;
+        const bellGain = audioCtx.createGain();
+        bellGain.gain.setValueAtTime(0, now);
+        bellGain.gain.linearRampToValueAtTime(vol * 0.8, now + attack);
+        bellGain.gain.exponentialRampToValueAtTime(0.001, fadeOutTime);
+        bellGain.gain.linearRampToValueAtTime(0, now + duration); 
+        bell.connect(bellGain).connect(audioCtx.destination);
+        bell.start(now);
+        bell.stop(now + duration); 
+      }
+    }
+
+    function scheduler() {
+      if (!isPlaying) return;
+      
+      while (nextNoteTime < audioCtx.currentTime + 0.15) {
+        const bpm = Math.min(80, Math.max(1, parseInt(bpmInput.value) || 54));
+        const durSec = 60 / bpm / syllables.length;
+        
+        playSyllableTone(currentIndex, durSec * 1000, nextNoteTime);
+        uiQueue.push({ index: currentIndex, count: currentDaimoku, time: nextNoteTime });
+        
+        nextNoteTime += durSec;
+        currentIndex = (currentIndex + 1) % syllables.length;
+        if (currentIndex === 0) currentDaimoku++;
+      }
+      schedulerTimer = setTimeout(scheduler, 25);
+    }
+
+    function updateUI() {
+      if (!isPlaying) return;
+      const currentTime = audioCtx.currentTime;
+      
+      while (uiQueue.length > 0 && uiQueue[0].time <= currentTime) {
+        const note = uiQueue.shift();
+        
+        if (!isAnimDisabled) {
+            syllables.forEach(s => s.classList.remove('active'));
+            syllables[note.index].classList.add('active');
+        }
+        
+        if (note.count > uiDaimokuCount) {
+          uiDaimokuCount = note.count;
+          daimokuDisplay.textContent = `Daimoku: ${uiDaimokuCount}`;
+        }
+
+        if (note.index === 1 && !isAnimDisabled) {
+          setTimeout(() => {
+            body.classList.add('flash'); 
+            setTimeout(() => body.classList.remove('flash'), 80);
+          }, FLASH_DELAY_MS);
+        }
+      }
+      uiAnimFrame = requestAnimationFrame(updateUI);
+    }
+
+    playBtn.onclick = () => {
+      initAudio();
+      
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      
+      requestWakeLock();
+      if (!isPlaying) {
+        isPlaying = true; startTime = performance.now();
+        if (!isPaused) { 
+          currentIndex = 0; currentDaimoku = 0; uiDaimokuCount = 0; elapsedTime = 0; uiQueue = []; 
+        }
+        isPaused = false; 
+        
+        nextNoteTime = audioCtx.currentTime + 0.1;
+        
+        scheduler();
+        updateUI();
+
+        if (!stopwatchInterval) stopwatchInterval = setInterval(() => {
+          const totalMs = elapsedTime + (performance.now() - startTime);
+          const s = Math.floor(totalMs / 1000) % 60, m = Math.floor(totalMs / 60000) % 60, h = Math.floor(totalMs / 3600000);
+          stopwatchDisplay.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }, 1000);
+      }
+      playBtn.disabled = true; pauseBtn.disabled = false;
+    };
+
+    pauseBtn.onclick = () => {
+      isPlaying = false; isPaused = true; 
+      releaseWakeLock();
+      elapsedTime += (performance.now() - startTime);
+      clearTimeout(schedulerTimer); cancelAnimationFrame(uiAnimFrame);
+      clearInterval(stopwatchInterval); stopwatchInterval = null; 
+      uiQueue = []; 
+      playBtn.disabled = false; pauseBtn.disabled = true;
+    };
+
+    stopBtn.onclick = () => {
+      isPlaying = false; isPaused = false; 
+      releaseWakeLock();
+      clearTimeout(schedulerTimer); cancelAnimationFrame(uiAnimFrame);
+      clearInterval(stopwatchInterval); stopwatchInterval = null; 
+      elapsedTime = 0; currentIndex = 0; currentDaimoku = 0; uiDaimokuCount = 0; uiQueue = [];
+      stopwatchDisplay.textContent = "00:00:00"; daimokuDisplay.textContent = "Daimoku: 0";
+      body.classList.remove('flash'); syllables.forEach(s => s.classList.remove('active'));
+      playBtn.disabled = false; pauseBtn.disabled = true;
+    };
+
+    bpmMinusBtn.onclick = () => bpmInput.value = Math.max(1, parseInt(bpmInput.value) - 1);
+    bpmPlusBtn.onclick = () => bpmInput.value = Math.min(80, parseInt(bpmInput.value) + 1);
+    
+    bpmInput.onchange = () => {
+        let val = parseInt(bpmInput.value);
+        if (isNaN(val) || val < 1) bpmInput.value = 1;
+        if (val > 80) bpmInput.value = 80;
+    };
+
+    muteSyllablesBtn.onclick = function() {
+        isSyllablesMuted = !isSyllablesMuted;
+        this.classList.toggle('toggled', isSyllablesMuted);
+    };
+
+    muteBellBtn.onclick = function() {
+        isBellMuted = !isBellMuted;
+        this.classList.toggle('toggled', isBellMuted);
+    };
+
+    toggleAnimBtn.onclick = function() {
+        isAnimDisabled = !isAnimDisabled;
+        this.classList.toggle('toggled', isAnimDisabled);
+        
+        if (isAnimDisabled) {
+            syllables.forEach(s => s.classList.remove('active'));
+            body.classList.remove('flash');
+        }
+    };
+
+    muteAllBtn.onclick = () => {
+        isGlobalMuted = !isGlobalMuted;
+        muteAllBtn.textContent = isGlobalMuted ? '🔇' : '🔊';
+    };
+
+    volumeSlider.oninput = () => {
+        if (isGlobalMuted && volumeSlider.value > 0) {
+            isGlobalMuted = false;
+            muteAllBtn.textContent = '🔊';
+        }
+    };
+
+  </script>
+</body>
+</html>
