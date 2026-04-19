@@ -5,7 +5,7 @@ This simple tool works like a personalized metronome, tracking your daimoku at y
 
 It’s ideal for virtual group chanting sessions (such as on Zoom within Soka Gakkai) if you are the daimoku lead. You can mute the sound, and visual flashing cues will keep you perfectly on beat—even when you pause or take a breath—so the rhythm stays steady for everyone!
 
-No downloads, no setup, no history — just open and start chanting.
+No downloads, no setup, no history—just open and start chanting.
 
 **This is a private project and not official Buddhist guidance. It is non-commercial.**
 
